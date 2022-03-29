@@ -256,6 +256,10 @@ public class CoreWorkloadModified extends Workload {
    */
   public static final String REQUEST_DISTRIBUTION_PROPERTY = "requestdistribution";
 
+  public static final String ZIPFIAN_CONSTANT_PROPERTY = "zipfianconstant";
+  public static final String ZIPFIAN_CONSTANT_PROPERTY_DEFAULT = "0.99";
+
+
   /**
    * The default distribution of requests across the keyspace.
    */
@@ -423,7 +427,7 @@ public class CoreWorkloadModified extends Workload {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
     String readMWriteStr;
     readMWriteStr = p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT);
-    Double readMWriteDouble = Double.parseDouble(readMWriteStr);
+    double readMWriteDouble = Double.parseDouble(readMWriteStr);
     if(readMWriteDouble != 0){
       System.out.println("ERROR: Don't support ReadModifyWrite!");
       System.exit(-1);
@@ -521,8 +525,10 @@ public class CoreWorkloadModified extends Workload {
           p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
       int opcount = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
       int expectednewkeys = (int) ((opcount) * insertproportion * 2.0); // 2 is fudge factor
+      final double zipfianconstant = Double.parseDouble(
+          p.getProperty(ZIPFIAN_CONSTANT_PROPERTY, ZIPFIAN_CONSTANT_PROPERTY_DEFAULT));
 
-      keychooser = new ScrambledZipfianGenerator(insertstart, insertstart + insertcount + expectednewkeys);
+      keychooser = new ScrambledZipfianGenerator(insertstart, insertstart + insertcount + expectednewkeys, zipfianconstant);
     } else if (requestdistrib.compareTo("latest") == 0) {
       keychooser = new SkewedLatestGenerator(transactioninsertkeysequence);
     } else if (requestdistrib.equals("hotspot")) {

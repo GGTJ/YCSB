@@ -92,3 +92,8 @@ To build a single database binding:
 ```
 workload=site.ycsb.workloads.CoreWorkloadModified
 ```
+- 提供zipfian常数的修改接口
+
+```
+zipfianconstant=0.88
+```
