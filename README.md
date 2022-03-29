@@ -78,3 +78,17 @@ To build the full distribution, with all database bindings:
 To build a single database binding:
 
     mvn -pl site.ycsb:mongodb-binding -am clean package
+
+## ModifyByGuan
+
+- 不支持readModifyWrite
+- 仿照erician的代码，修改了YCSB的输出数据，删除了和数据库交互的过程，链接如下：
+
+> https://github.com/erician/YCSB-with-delete
+
+- 直接使用了erician提供的YCSB输出处理脚本
+- 通过在wordload文件中添加如下定义，启用上述修改
+
+```
+workload=site.ycsb.workloads.CoreWorkloadModified
+```
