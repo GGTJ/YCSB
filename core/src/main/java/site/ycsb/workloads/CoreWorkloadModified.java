@@ -377,7 +377,7 @@ public class CoreWorkloadModified extends Workload {
     }
     String value = Long.toString(keynum);
     int fill = zeropadding - value.length();
-    String prekey = "user";
+    String prekey = "";
     for (int i = 0; i < fill; i++) {
       prekey += '0';
     }
@@ -421,7 +421,13 @@ public class CoreWorkloadModified extends Workload {
   @Override
   public void init(Properties p) throws WorkloadException {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
-
+    String readMWriteStr;
+    readMWriteStr = p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT);
+    Double readMWriteDouble = Double.parseDouble(readMWriteStr);
+    if(readMWriteDouble != 0){
+      System.out.println("ERROR: Don't support ReadModifyWrite!");
+      System.exit(-1);
+    }
     fieldcount =
         Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     final String fieldnameprefix = p.getProperty(FIELD_NAME_PREFIX, FIELD_NAME_PREFIX_DEFAULT);
@@ -612,38 +618,10 @@ public class CoreWorkloadModified extends Workload {
   @Override
   public boolean doInsert(DB db, Object threadstate) {
     int keynum = keysequence.nextValue().intValue();
-    String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-    HashMap<String, ByteIterator> values = buildValues(dbkey);
+    String dbkey = CoreWorkloadModified.buildKeyName(keynum, zeropadding, orderedinserts);
+    System.out.println("INSERT" + " " + dbkey);
 
-    Status status;
-    int numOfRetries = 0;
-    do {
-      status = db.insert(table, dbkey, values);
-      if (null != status && status.isOk()) {
-        break;
-      }
-      // Retry if configured. Without retrying, the load process will fail
-      // even if one single insertion fails. User can optionally configure
-      // an insertion retry limit (default is 0) to enable retry.
-      if (++numOfRetries <= insertionRetryLimit) {
-        System.err.println("Retrying insertion, retry count: " + numOfRetries);
-        try {
-          // Sleep for a random number between [0.8, 1.2)*insertionRetryInterval.
-          int sleepTime = (int) (1000 * insertionRetryInterval * (0.8 + 0.4 * Math.random()));
-          Thread.sleep(sleepTime);
-        } catch (InterruptedException e) {
-          break;
-        }
-
-      } else {
-        System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries +
-            "Insertion Retry Limit: " + insertionRetryLimit);
-        break;
-
-      }
-    } while (true);
-
-    return null != status && status.isOk();
+    return true;
   }
 
   /**
@@ -722,116 +700,32 @@ public class CoreWorkloadModified extends Workload {
   public void doTransactionRead(DB db) {
     // choose a random key
     long keynum = nextKeynum();
-
-    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-
-    HashSet<String> fields = null;
-
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
-      fields = new HashSet<String>();
-      fields.add(fieldname);
-    } else if (dataintegrity || readallfieldsbyname) {
-      // pass the full field list if dataintegrity is on for verification
-      fields = new HashSet<String>(fieldnames);
-    }
-
-    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-    db.read(table, keyname, fields, cells);
-
-    if (dataintegrity) {
-      verifyRow(keyname, cells);
-    }
+    String keyname = CoreWorkloadModified.buildKeyName(keynum, zeropadding, orderedinserts);
+    System.out.println("READ" + " " + keyname);
   }
 
   public void doTransactionReadModifyWrite(DB db) {
-    // choose a random key
-    long keynum = nextKeynum();
 
-    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-
-    HashSet<String> fields = null;
-
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
-      fields = new HashSet<String>();
-      fields.add(fieldname);
-    }
-
-    HashMap<String, ByteIterator> values;
-
-    if (writeallfields) {
-      // new data for all the fields
-      values = buildValues(keyname);
-    } else {
-      // update a random field
-      values = buildSingleValue(keyname);
-    }
-
-    // do the transaction
-
-    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-
-
-    long ist = measurements.getIntendedStartTimeNs();
-    long st = System.nanoTime();
-    db.read(table, keyname, fields, cells);
-
-    db.update(table, keyname, values);
-
-    long en = System.nanoTime();
-
-    if (dataintegrity) {
-      verifyRow(keyname, cells);
-    }
-
-    measurements.measure("READ-MODIFY-WRITE", (int) ((en - st) / 1000));
-    measurements.measureIntended("READ-MODIFY-WRITE", (int) ((en - ist) / 1000));
   }
 
   public void doTransactionScan(DB db) {
     // choose a random key
     long keynum = nextKeynum();
 
-    String startkeyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+    String startkeyname = CoreWorkloadModified.buildKeyName(keynum, zeropadding, orderedinserts);
 
     // choose a random scan length
     int len = scanlength.nextValue().intValue();
 
-    HashSet<String> fields = null;
-
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
-      fields = new HashSet<String>();
-      fields.add(fieldname);
-    }
-
-    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+    System.out.println("SCAN" + " " + startkeyname + " " + len);
   }
 
   public void doTransactionUpdate(DB db) {
     // choose a random key
     long keynum = nextKeynum();
+    String keyname = CoreWorkloadModified.buildKeyName(keynum, zeropadding, orderedinserts);
 
-    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-
-    HashMap<String, ByteIterator> values;
-
-    if (writeallfields) {
-      // new data for all the fields
-      values = buildValues(keyname);
-    } else {
-      // update a random field
-      values = buildSingleValue(keyname);
-    }
-
-    db.update(table, keyname, values);
+    System.out.println("UPDATE" + " " + keyname);
   }
 
   public void doTransactionInsert(DB db) {
@@ -839,10 +733,8 @@ public class CoreWorkloadModified extends Workload {
     long keynum = transactioninsertkeysequence.nextValue();
 
     try {
-      String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-
-      HashMap<String, ByteIterator> values = buildValues(dbkey);
-      db.insert(table, dbkey, values);
+      String dbkey = CoreWorkloadModified.buildKeyName(keynum, zeropadding, orderedinserts);
+      System.out.println("INSERT" + " " + dbkey);
     } finally {
       transactioninsertkeysequence.acknowledge(keynum);
     }
