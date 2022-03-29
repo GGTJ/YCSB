@@ -87,13 +87,13 @@ To build a single database binding:
 > https://github.com/erician/YCSB-with-delete
 
 - 直接使用了erician提供的YCSB输出处理脚本
+- 提供zipfian常数的修改接口(只对key的zipfian生效，不对scan的count的zipfian生效)
+
+```
+zipfianconstant=0.88
+```
 - 通过在wordload文件中添加如下定义，启用上述修改
 
 ```
 workload=site.ycsb.workloads.CoreWorkloadModified
-```
-- 提供zipfian常数的修改接口
-
-```
-zipfianconstant=0.88
 ```
