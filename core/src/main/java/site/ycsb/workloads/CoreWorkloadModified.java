@@ -528,7 +528,8 @@ public class CoreWorkloadModified extends Workload {
       final double zipfianconstant = Double.parseDouble(
           p.getProperty(ZIPFIAN_CONSTANT_PROPERTY, ZIPFIAN_CONSTANT_PROPERTY_DEFAULT));
 
-      keychooser = new ScrambledZipfianGenerator(insertstart, insertstart + insertcount + expectednewkeys, zipfianconstant);
+      keychooser = new ScrambledZipfianGenerator(insertstart, 
+        insertstart + insertcount + expectednewkeys, zipfianconstant);
     } else if (requestdistrib.compareTo("latest") == 0) {
       keychooser = new SkewedLatestGenerator(transactioninsertkeysequence);
     } else if (requestdistrib.equals("hotspot")) {
